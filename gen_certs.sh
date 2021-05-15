@@ -29,11 +29,32 @@ openssl x509 -days 365 -req -in grpc-server.csr -CAcreateserial -CA ../serverCA/
 
 cd ..
 echo "==================================================================="
+echo "Creating clientCA folder ..."
+mkdir -p clientCA
+cd clientCA || exit
+echo "Generating gRPC Client Intermediate CA certificate ..."
+echo "==================================================================="
+openssl req -nodes -new -keyout grpc-client-ca.key -out grpc-client-ca.csr -subj "/C=IN/ST=MH/L=Pune/O=KubeDaily/OU=DevSecOps Meetup/CN=Client Intermediate CA" -config ../openssl.cnf -passout pass:1111
+openssl x509 -days 365 -req -in grpc-client-ca.csr -CA ../rootCA/grpc-root-ca.crt -CAkey ../rootCA/grpc-root-ca.key -CAcreateserial -out grpc-client-ca.crt -extfile ../openssl.cnf -extensions v3_intermediate_ca -passin pass:1111
+
+cd ..
+echo "==================================================================="
+echo "Creating clientCertificates folder ..."
+mkdir -p clientCertificates
+cd clientCertificates || exit
+echo "Generating gRPC Client certificate ..."
+echo "==================================================================="
+openssl req -nodes -new -keyout grpc-client.key -out grpc-client.csr -subj "/C=IN/ST=MH/L=Pune/O=KubeDaily/OU=DevSecOps Meetup/CN=node-grpc-client.devsecops-meetup.svc.mahendrabagul.github.io" -config ../openssl.cnf -passout pass:1111
+openssl x509 -days 90 -req -in grpc-client.csr -CA ../clientCA/grpc-client-ca.crt -CAkey ../clientCA/grpc-client-ca.key -out grpc-client.crt -extfile ../openssl.cnf -extensions client_cert -passin pass:1111 -CAcreateserial
+
+cd ..
+echo "==================================================================="
 echo "Creating certificatesChain folder ..."
 mkdir -p certificatesChain
 cd certificatesChain || exit
 echo "Generating certificate chain..."
 echo "==================================================================="
 cat ../serverCA/grpc-server-ca.crt ../rootCA/grpc-root-ca.crt >grpc-root-ca-and-grpc-server-ca-chain.crt
+cat ../clientCA/grpc-client-ca.crt ../certificatesChain/grpc-root-ca-and-grpc-server-ca-chain.crt >grpc-root-ca-and-grpc-server-ca-and-grpc-client-ca-chain.crt
 
 cd ..
